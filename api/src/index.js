@@ -19,6 +19,6 @@ app.use((req, res, next) => {
 });
 app.use('/links',require('./routes/links'));
 
-app.use(require('./routes'));
+app.use(require('./routes/links.js'));
 
 //killall node
