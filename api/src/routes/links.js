@@ -7,7 +7,7 @@ const pool = require('../database');
 router.get('/get', (req, res) => {
     const { repositorio } = req.body.name;
     const { file } = req.body.file;
-     pool.query('SELECT * FROM Repositorio WHERE ID = ? ', [id], (err, rows) => {
+     pool.query('SELECT * FROM Repositorio WHERE ID = ? ', [repositorio], (err, rows) => {
         if (!err) {
           res.json(rows[0]);
         } else {
@@ -21,8 +21,7 @@ router.post('/init', async (req, res) => {
     const {id} = req.body.name;
     var tablaRepositorio = "CREATE TABLE IF NOT EXISTS Repo_"+ [id] + "( lastcommit VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , nameFile VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , PRIMARY KEY (nameFile))";
     pool.query(tablaRepositorio);
-    await pool.query('INSERT INTO Repositorio set ? ', req.body).then(res.send("Agregado")).catch(error => res.send("Error"));
-    
+    await pool.query('INSERT INTO Repositorio set ? ', req.body).then(res.send({status: "success"})).catch(error => res.send("Error"));
 });
 
 router.post('/commit',  (req, res) => {
