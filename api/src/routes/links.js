@@ -45,19 +45,26 @@ router.post('/commit',  (req, res) => {
     });
     
     if (lastcommit == [commitID]){
-      
       for(var i=0; i<fileName.length;i++){
-        //var diff= JsDiff.diffTrimmedLines(oldCommit, newCommit)
+        /* 
+        var j=0;
+        var newLinesAt=[];
+        var deletedLinesAt=[];
+        var newLines[];
+        var diff= JsDiff.diffTrimmedLines(oldCommit, newCommit)
         diff.forEach(function(part){
             if(part.added){
-              //Se agrega esta part
-            }
-            if(part.deleted){
+              //Se agrega esta parte
+              newLinesAt.push(j);
+              newLines.push(part);
+            }else if(part.deleted){
               //se quita esta parte
+              deletedLinesAt.push(j);
             }
+            j++;
             //Como se guardaria esto?
         });
-
+        */
         var sqlCommit = "INSERT INTO Repo_" + [repositorio] + "(commit, nameFile) VALUES (" + [md5(lastcommitid)] + ", "+ [fileName[i]] +")";
         var sql = "CREATE TABLE IF NOT EXISTS "+ [fileName[i]]+ "_"+ [repositorio] + "( nombre VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , datos VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , commit VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , idcommit VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , repositorio VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , PRIMARY KEY (nombre))";
         pool.query(sql);
@@ -112,6 +119,36 @@ app.put('/rollback', function (req, res) {
   //res.send({file: file, fileContent:fileContent});
 
 })
+
+
+//Funcion para obtener el commit actual basado en el historial de commits
+//Se espera un array de json 
+function getFromHistory(commitHistory){
+  var finalText=[];
+  for(commit in commitHistory){
+    //Array con los indices de las nuevas lineas
+    var newLinesAt=commit.newLinesAt;
+    //Array con los indices de las lineas eliminadas
+    var deletedLinesAt=commit.newLinesAt;
+    //Array con las nuevas lineas
+    var newlines = commit.newlines;
+
+
+    //Se agregan las nuevas lineas
+    for(line in newlines){
+      finalText.splice(newLinesAt.shift(), 0, line);
+    }
+
+    //Se eliminan las lineas eliminadas
+    for(line in deletedlines){
+      finalText.splice(deletedLinesAt.shift(), 1)
+    }
+
+  }
+
+  return finalText.join();
+
+}
 
 
 
