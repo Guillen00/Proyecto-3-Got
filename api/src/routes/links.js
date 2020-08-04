@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 var  jsdiff = require('diff');
 var md5 = require('md5');
-let lastcommitid=0;
+let lastcommitid = 0;
 let indice = 0;
 const pool = require('../database');
 
@@ -16,7 +16,8 @@ router.get('/get', (req, res) => {
      pool.query("SELECT newLinesAt, deletedLinesAt, newLines  FROM "+[file]+"_"+[repositorio]+' ORDER BY indice ASC' , (err, rows) => {
         if (!err) {
           //res.json(rows);
-          
+          console.log([file]);
+          console.log(rows);
           var data = getFromHistory(rows);
           res.send(data);
 
@@ -46,44 +47,52 @@ router.post('/commit',  (req, res) => {
     var commitClient = [commitID];
     var commitServer;
 
-    pool.getConnection(function (err, conn) {
-      if (err) return callback(err);
+
       
       
-      conn.query('SELECT * FROM Repo_' + [name], function (err, rows) {
-    
-    
+    pool.query('SELECT * FROM Repo_' + [name],  (err, rows) => {
+
         if (rows.length == 0){
           commitServer = [""];
         }else{
           var {lastcommit} = rows[0];
           commitServer = [lastcommit]; 
         }
+
+        if(lastcommitid == 0 && commitServer[0] != ""){
+          while(commitServer[0] != md5(lastcommitid)){
+            lastcommitid++;
+          }
+          
+        }
         
   
   
           if ( commitClient[0] == commitServer[0] ){
             
-            conn.query("TRUNCATE  Repo_"+[name]);
+            pool.query("TRUNCATE  Repo_"+[name]);
             for(var i=0; i<files.length;i++){
-              console.log(i);
 
-              var sql = "CREATE TABLE IF NOT EXISTS "+ files[i]+ "_"+ [name] + "(indice VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL, files VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , newLinesAt VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , deletedLinesAt VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL, newLines VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL,message VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , commitID VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , name VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , PRIMARY KEY (commitID))";
-              conn.query(sql);
+              var sql = "CREATE TABLE IF NOT EXISTS "+ [files[i]]+ "_"+ [name] + "(indice VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL, files VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , newLinesAt VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , deletedLinesAt VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL, newLines VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL,message VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , commitID VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , name VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , PRIMARY KEY (commitID))";
+              pool.query(sql);
+              
+
   
-              console.log(i);
-              console.log(files[i]);
 
-              conn.query("SELECT newLinesAt, deletedLinesAt, newLines  FROM "+files[i]+"_"+[name]+' ORDER BY indice ASC' , function(rows) {
-               
+              pool.query("SELECT newLinesAt, deletedLinesAt, newLines, indice  FROM "+[files[i]]+"_"+[name]+' ORDER BY indice ASC' , (err,rows) => {
+                
+                tam = rows.length;
+                if(tam != 0){
+                  indice = rows[tam-1].indice + 1;
+                }
+
+                i--;
+                lastcommitid--;
                 console.log(i);
-
                 var newLinesAt = [];
                 var deletedLinesAt = [];
                 var newLines = [];
                 var newStringArray = (fileContent[i]);
-                console.log(i);
-                console.log(fileContent[i]);
                 var oldStringArray = getFromHistory(rows);
                 var h;
     
@@ -108,11 +117,11 @@ router.post('/commit',  (req, res) => {
     
     
                 var sqlCommit = "INSERT INTO Repo_" + [name] + "(lastcommit, nameFile) VALUES ('" + md5(lastcommitid) + "', '"+ files[i] +"')";
-                conn.query(sqlCommit);
-                var data = "INSERT INTO "+ files[i]+ "_"+ [name] +" (indice, files, newLinesAt, deletedLinesAt, newLines, message, commitID, name) VALUES ('"+indice+"','"+ files[i] +"','"+newLinesAt+"','"+deletedLinesAt+"','"+newLines+"','"+[message]+"','"+md5(lastcommitid)+"','"+[name]+"')";
-                conn.query(data); 
+                pool.query(sqlCommit);
+                var data = "INSERT INTO "+ [files[i]]+ "_"+ [name] +" (indice, files, newLinesAt, deletedLinesAt, newLines, message, commitID, name) VALUES ('"+indice+"','"+ files[i] +"','"+newLinesAt+"','"+deletedLinesAt+"','"+newLines+"','"+[message]+"','"+md5(lastcommitid)+"','"+[name]+"')";
+                pool.query(data); 
             
-              
+                lastcommitid++;
               }); 
             }
             res.send({status: "success", commiIDs: md5(lastcommitid)});
@@ -121,13 +130,12 @@ router.post('/commit',  (req, res) => {
             res.send({status:"rejected", reason : "Different Commit Version on Server" });
           }   
           lastcommitid++;
-          indice++;
-          conn.release();
+          //indice++;
 
       });
 
       
-    });
+    
 
     
      
@@ -198,7 +206,7 @@ router.get('/status', (req, res) => {
 
 router.get('/rollback',  (req, res) => {
   const{name} = req.body;
-  const{file} = req.body.file;
+  const{file} = req.body;
   const{commitID} = req.body; 
 
   pool.query("SELECT newLinesAt, deletedLinesAt, newLines, commitID  FROM "+[file]+"_"+[name]+' ORDER BY indice ASC' , (err, rows) => {
