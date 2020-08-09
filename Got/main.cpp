@@ -6,9 +6,13 @@
 #include <sstream>
 #include <string>
 #include <command.h>
+#include <QNetworkAccessManager>
 
+#include <http.h>
 
 using namespace std;
+
+
 
 int main(int argc, char *argv[])
 {
@@ -16,6 +20,7 @@ int main(int argc, char *argv[])
     Command command;
     command.rutadestino ="/home/guillen00/Documents/Proyecto3/";
     command.normbreRepositorioActual = "Proyecto3";
+
 
 
     while(true){

@@ -7,8 +7,17 @@
 #include <QJsonArray>
 #include <QDebug>
 
+#include <http.h>
 
-
+//#include <cpprest/http_client.h>
+//#include <curl/curl.h>
+#include <QNetworkAccessManager>
+#include <QUrl>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QJsonObject>
+#include <QArrayData>
+#include <QObject>
 
 Command::Command()
 {
@@ -152,6 +161,7 @@ void Command::commit(string mensaje){
         ifstream fe(rutadestino+lista_pendientes.front());
         while (!fe.eof()) {
           fe >> cadena;
+
           getline(fe,texto1);
           //cout << cadena << endl;
           //texto = texto +"/n"+ std::string(cadena);
@@ -228,7 +238,9 @@ void Command::sync(string file){
 }
 void Command::init (string name){
 
-    normbreRepositorioActual = name;
+
+    GET("hoia","jaja");
+    /*normbreRepositorioActual = name;
     string ruta1 = rutadestino+name;
     char buffer[100];
     strcpy(buffer,ruta1.c_str());
@@ -241,6 +253,39 @@ void Command::init (string name){
     QJsonArray recordsArray;
     recordsArray.push_back(recordObject);
     //cout<< recordsArray<< endl;
-    qDebug() << recordsArray ;
+    qDebug() << recordsArray ;*/
 }
 
+void Command::GET(string direccion, string json){
+    /*QNetworkAccessManager manager;
+    QUrl url =QUrl("http://localhost:3000/user");
+    QNetworkRequest req(url);
+    req.setRawHeader( "User-Agent" , "Meeting C++ RSS Reader" );
+    QNetworkReply* reply = manager.get(req);
+    if ( reply->error() != QNetworkReply::NoError ) {
+        qWarning() <<"ErrorNo: "<< reply->error() << "for url: " << reply->url().toString();
+        qDebug() << "Request failed, " << reply->errorString();
+        qDebug() << "Headers:"<<  reply->rawHeaderList()<< "content:" << reply->readAll();
+
+        return;
+    }
+    qDebug() <<"content:" << reply->readAll();*/
+    Net handler ;
+    handler.POSTHTTP("http://localhost:4000/links/init/","hsasa");
+
+}
+void Command::POST(string direccion, string json1){
+    QUrl serviceUrl = QUrl("https://www.jusmine.jp/KA/KGBloginCheck");
+    QNetworkRequest request(serviceUrl);
+    QJsonObject json;
+    json.insert("userid","xxxx");
+    json.insert("userpass","xxxx");
+    QJsonDocument jsonDoc(json);
+    QByteArray jsonData= jsonDoc.toJson();
+    request.setHeader(QNetworkRequest::ContentTypeHeader,"application/json");
+    request.setHeader(QNetworkRequest::ContentLengthHeader,QByteArray::number(jsonData.size()));
+    QNetworkAccessManager networkManager;
+
+    networkManager.post(request, jsonData);
+
+}

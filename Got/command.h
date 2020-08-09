@@ -16,6 +16,8 @@
 #include <exception>
 #include <filesystem>
 
+#include <QNetworkAccessManager>
+
 using namespace std;
 
 
@@ -36,6 +38,11 @@ public:
     std::list <string> lista_pendientes;
     string rutadestino;
     string normbreRepositorioActual;
+
+
+    void GET(string direccion, string json);
+    void POST(string direccion, string json);
+
 };
 
 #endif // COMMAND_H
