@@ -18,7 +18,6 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES +=  \
-        http.cpp \
         main.cpp \
         command.cpp
 
@@ -31,8 +30,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-    command.h \
-    http.h
+    command.h
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../usr/lib/x86_64-linux-gnu/release/ -lcurl
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../usr/lib/x86_64-linux-gnu/debug/ -lcurl
@@ -47,3 +45,14 @@ else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/..
 else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/../../../usr/lib/x86_64-linux-gnu/debug/curl.lib
 else:unix: PRE_TARGETDEPS += $$PWD/../../../usr/lib/x86_64-linux-gnu/libcurl.a
 
+
+unix|win32: LIBS += -lboost_system
+unix|win32: LIBS += -lcrypto
+
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../casablanca/build.debug/Release/Binaries/release/ -lcpprest
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../casablanca/build.debug/Release/Binaries/debug/ -lcpprest
+else:unix: LIBS += -L$$PWD/../casablanca/build.debug/Release/Binaries/ -lcpprest
+
+INCLUDEPATH += $$PWD/../casablanca/build.debug/Release/Binaries
+DEPENDPATH += $$PWD/../casablanca/build.debug/Release/Binaries

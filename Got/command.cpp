@@ -7,9 +7,11 @@
 #include <QJsonArray>
 #include <QDebug>
 
-#include <http.h>
 
-//#include <cpprest/http_client.h>
+#include <cpprest/http_client.h>
+#include <cpprest/streams.h>
+#include <jsoncpp/json/json.h>
+//#include <cpprest/http_compression.h>
 //#include <curl/curl.h>
 #include <QNetworkAccessManager>
 #include <QUrl>
@@ -18,6 +20,11 @@
 #include <QJsonObject>
 #include <QArrayData>
 #include <QObject>
+
+
+using namespace web::http;
+using namespace web::http::client;
+
 
 Command::Command()
 {
@@ -117,6 +124,8 @@ void Command::commit(string mensaje){
 
     string texto = "";
     string texto1 ="";
+    web::json::value json_v ;
+    int x=0;
     /*if( DIR* pDIR = opendir(rutadestino.c_str()) )
     {
       while(dirent* entry = readdir(pDIR))
@@ -174,21 +183,32 @@ void Command::commit(string mensaje){
 
 
         FileNameArray.push_back(lista_pendientes.front().c_str());
+        json_v["files"][x] = web::json::value::string(lista_pendientes.front().c_str());
+        json_v["fileContent"][x] = web::json::value::string(texto.c_str());
         FileDataArray.push_back(texto.c_str());
         lista_pendientes.pop_front();
+        x++;
     }
     recordObject.insert("repoName", QJsonValue::fromVariant(normbreRepositorioActual.c_str()));
     recordObject.insert("mensaje", QJsonValue::fromVariant(mensaje.c_str()));
     recordObject.insert("files", FileNameArray);
     recordObject.insert("fileContent", FileDataArray);
 
-
+    QStringList nuevo ;
+    FileNameArray.fromStringList(nuevo) ;
 
 
     QJsonArray recordsArray;
     recordsArray.push_front(recordObject);
-    qDebug() << recordsArray ;
+    //qDebug() << recordsArray ;
 
+
+    json_v["repoName"] = web::json::value::string(normbreRepositorioActual.c_str());
+    json_v["mensaje"] = web::json::value::string(mensaje.c_str());
+
+
+    cout<< json_v<<endl;
+    POST("http://localhost:4000/links/commit/",json_v);
 
 }
 void Command::status (string file){
@@ -202,18 +222,28 @@ void Command::status (string file){
     recordsArray.push_front(recordObject);
     qDebug() << recordsArray ;
 
+    web::json::value json_v ;
+    json_v["repoName"] = web::json::value::string(normbreRepositorioActual.c_str());
+    json_v["file"] = web::json::value::string(file.c_str());
+    POST("http://localhost:4000/links/status/",json_v);
+
 }
 void Command::rollback (string file,string commit){
 
-    QJsonObject recordObject;
-    recordObject.insert("repoName", QJsonValue::fromVariant(normbreRepositorioActual.c_str()));
-    recordObject.insert("file", QJsonValue::fromVariant(file.c_str()));
-    recordObject.insert("commitID", QJsonValue::fromVariant(file.c_str()));
-    QJsonArray recordsArray;
-    recordsArray.push_front(recordObject);
-    qDebug() << recordsArray ;
+
+    web::json::value json_v ;
+    json_v["repoName"] = web::json::value::string(normbreRepositorioActual.c_str());
+    json_v["file"] = web::json::value::string(file.c_str());
+    json_v["commitID"] = web::json::value::string(commit.c_str());
+
+
+    ofstream fs(rutadestino+file);
+    fs << POST("http://localhost:4000/links/rollback/",json_v) << endl;
+    fs.close();
+
 
 }
+
 void Command::reset(string file){
 
     QJsonObject recordObject;
@@ -225,22 +255,59 @@ void Command::reset(string file){
     qDebug() << recordsArray ;
 
 
+    web::json::value json_v ;
+    json_v["repoName"] = web::json::value::string(normbreRepositorioActual.c_str());
+    json_v["file"] = web::json::value::string(file.c_str());
+
+    ofstream fs(rutadestino+file);
+    fs << POST("http://localhost:4000/links/rollback/",json_v) << endl;
+    fs.close();
 }
 void Command::sync(string file){
 
-    QJsonObject recordObject;
-    recordObject.insert("repoName", QJsonValue::fromVariant(normbreRepositorioActual.c_str()));
-    recordObject.insert("file", QJsonValue::fromVariant(file.c_str()));
-    recordObject.insert("commitID", QJsonValue::fromVariant(file.c_str()));
-    QJsonArray recordsArray;
-    recordsArray.push_front(recordObject);
-    qDebug() << recordsArray ;
+
+    web::json::value json_v ;
+    json_v["repoName"] = web::json::value::string(normbreRepositorioActual.c_str());
+    json_v["file"] = web::json::value::string(file.c_str());
+    json_v["commitID"] = web::json::value::string(file.c_str());
+    string newdata;
+    newdata = POST("http://localhost:4000/links/sync/",json_v);
+    string olddata = "";
+    char cadena[300];
+    ifstream fe(rutadestino+file);
+    while (!fe.eof()) {
+        fe >> cadena;
+        olddata = olddata + cadena;
+      }
+      fe.close();
+     if(olddata == newdata){
+        cout <<"El archivo se encuentra actualizado"<<endl;
+
+     }
+     else{
+      cout<< "___(1)_______________________________Archivo local:_____________________________________________"<<endl;
+      cout << olddata<<endl;
+      cout<< "___(2)_____________________________Archivo Base de Datos:_______________________________________"<<endl;
+      cout<< newdata<<endl;
+      cout<< "   "<<endl;
+      cout<< "   "<<endl;
+      cout<< "   "<<endl;
+      cout<< "Digite el numero que desea conservar"<<endl;
+      int dato;
+      cin>> dato ;
+      if(dato == 1){
+
+      }
+      else if(dato == 2){
+          ofstream fs(rutadestino+file);
+          fs << newdata << endl;
+          fs.close();
+      }
+     }
 }
 void Command::init (string name){
 
-
-    GET("hoia","jaja");
-    /*normbreRepositorioActual = name;
+    normbreRepositorioActual = name;
     string ruta1 = rutadestino+name;
     char buffer[100];
     strcpy(buffer,ruta1.c_str());
@@ -248,44 +315,50 @@ void Command::init (string name){
     ruta1 = rutadestino+name+"/";
     rutadestino=ruta1;
 
-    QJsonObject recordObject;
-    recordObject.insert("repoName", QJsonValue::fromVariant(name.c_str()));
-    QJsonArray recordsArray;
-    recordsArray.push_back(recordObject);
-    //cout<< recordsArray<< endl;
-    qDebug() << recordsArray ;*/
+
+    web::json::value json_v ;
+    json_v["name"] = web::json::value::string(name);
+    POST("http://localhost:4000/links/init/",json_v);
 }
 
-void Command::GET(string direccion, string json){
-    /*QNetworkAccessManager manager;
-    QUrl url =QUrl("http://localhost:3000/user");
-    QNetworkRequest req(url);
-    req.setRawHeader( "User-Agent" , "Meeting C++ RSS Reader" );
-    QNetworkReply* reply = manager.get(req);
-    if ( reply->error() != QNetworkReply::NoError ) {
-        qWarning() <<"ErrorNo: "<< reply->error() << "for url: " << reply->url().toString();
-        qDebug() << "Request failed, " << reply->errorString();
-        qDebug() << "Headers:"<<  reply->rawHeaderList()<< "content:" << reply->readAll();
+void Command::GET(string direccion){
 
-        return;
-    }
-    qDebug() <<"content:" << reply->readAll();*/
-    Net handler ;
-    handler.POSTHTTP("http://localhost:4000/links/init/","hsasa");
+    http_client client(direccion);
+
+        http_response response;
+        response = client.request(methods::GET, "/get").get();
+        std::cout << response.extract_string().get() << "\n";
+
+        response = client.request(methods::GET, "/get").get();
+        std::cout << "url: " << response.extract_json().get()[U("url")] << "\n";
 
 }
-void Command::POST(string direccion, string json1){
-    QUrl serviceUrl = QUrl("https://www.jusmine.jp/KA/KGBloginCheck");
-    QNetworkRequest request(serviceUrl);
-    QJsonObject json;
-    json.insert("userid","xxxx");
-    json.insert("userpass","xxxx");
-    QJsonDocument jsonDoc(json);
-    QByteArray jsonData= jsonDoc.toJson();
-    request.setHeader(QNetworkRequest::ContentTypeHeader,"application/json");
-    request.setHeader(QNetworkRequest::ContentLengthHeader,QByteArray::number(jsonData.size()));
-    QNetworkAccessManager networkManager;
 
-    networkManager.post(request, jsonData);
+string Command::POST(string direccion, web::json::value json1){
 
+
+    http_client client_lmdb(direccion);
+    http_request request(methods::POST);
+    request.headers().add("name", "contentTypeV");
+
+    request.set_body(json1);
+
+    http_response response;
+    response = client_lmdb.request(request).get();
+
+    web::json::value json_v ;
+
+
+    cout << response.to_string() << endl;
+
+    return response.to_string();
+
+}
+
+Json::Value toJson(string message){ Json::Value val;
+    Json::Reader reader;
+    bool b = reader.parse(message, val);
+    if (!b)
+        cout << "Error: " << reader.getFormattedErrorMessages();
+    return val;
 }

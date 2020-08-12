@@ -55,10 +55,10 @@ public:
     std::list <string> lista_pendientes;
     string rutadestino;
     string normbreRepositorioActual;
-
+    
 
     void GET(string direccion);
-    void POST(string direccion, web::json::value json);
+    string POST(string direccion, web::json::value json);
 
 };
 

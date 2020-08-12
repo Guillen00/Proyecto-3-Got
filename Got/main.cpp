@@ -8,7 +8,7 @@
 #include <command.h>
 #include <QNetworkAccessManager>
 
-#include <http.h>
+
 
 using namespace std;
 
