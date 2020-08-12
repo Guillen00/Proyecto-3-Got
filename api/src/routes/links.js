@@ -6,8 +6,6 @@ let lastcommitid = 0;
 let indice = 0;
 const pool = require('../database');
 
-const compressor = require('../compressor.js');
-
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -15,7 +13,7 @@ const compressor = require('../compressor.js');
 router.get('/get', (req, res) => {
     const { repositorio } = req.body;
     const { file } = req.body;
-     pool.query("SELECT newLinesAt, deletedLinesAt, newLines, arbol  FROM "+[file]+"_"+[repositorio]+' ORDER BY indice ASC' , (err, rows) => {
+     pool.query("SELECT newLinesAt, deletedLinesAt, newLines  FROM "+[file]+"_"+[repositorio]+' ORDER BY indice ASC' , (err, rows) => {
         if (!err) {
           //res.json(rows);
           console.log([file]);
@@ -31,13 +29,12 @@ router.get('/get', (req, res) => {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-router.post('/init',  (req, res) => {
+router.post('/init', async (req, res) => {
     const {name} = req.body;
-    console.log(req.body);
     var tablaRepositorio = "CREATE TABLE IF NOT EXISTS Repo_"+ [name] + "( lastcommit VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , nameFile VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , PRIMARY KEY (nameFile))";
-     pool.query(tablaRepositorio);
-     pool.query("INSERT INTO Repositorio (name) VALUES ('" + [name]+"')").then(res.send({status: "success"})).catch(error => res.send("Error"));
-    });
+    await pool.query(tablaRepositorio);
+    await pool.query('INSERT INTO Repositorio set ? ', req.body).then(res.send({status: "success"})).catch(error => res.send("Error"));
+});
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -76,15 +73,17 @@ router.post('/commit',  (req, res) => {
             pool.query("TRUNCATE  Repo_"+[name]);
             for(var i=0; i<files.length;i++){
 
-              var sql = "CREATE TABLE IF NOT EXISTS "+ [files[i]]+ "_"+ [name] + "(indice VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL, files VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL, arbol VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , newLinesAt VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , deletedLinesAt VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL, newLines VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL,message VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , commitID VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , name VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , PRIMARY KEY (commitID))";
+              var sql = "CREATE TABLE IF NOT EXISTS "+ [files[i]]+ "_"+ [name] + "(indice VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL, files VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , newLinesAt VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , deletedLinesAt VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL, newLines VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL,message VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , commitID VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , name VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , PRIMARY KEY (commitID))";
               pool.query(sql);
               
 
-              pool.query("SELECT newLinesAt, deletedLinesAt, newLines, arbol, indice  FROM "+[files[i]]+"_"+[name]+' ORDER BY indice ASC' , (err,rows) => {
+  
+
+              pool.query("SELECT newLinesAt, deletedLinesAt, newLines, indice  FROM "+[files[i]]+"_"+[name]+' ORDER BY indice ASC' , (err,rows) => {
                 
                 tam = rows.length;
                 if(tam != 0){
-                  indice = parseInt(rows[tam-1].indice) + 1;
+                  indice = rows[tam-1].indice + 1;
                 }
 
                 i--;
@@ -113,20 +112,13 @@ router.post('/commit',  (req, res) => {
                     newLines.push(newStringArray[h])
                     h++
                 }
-                console.log(newLines.join(""));
-
                 
-                
-                var { freqTable, encoded } = compressor.encode(newLines.join(""));
-                
-                if(freqTable == undefined){
-                  freqTable = "";
-                  encoded = "";
-                }
+    
+    
     
                 var sqlCommit = "INSERT INTO Repo_" + [name] + "(lastcommit, nameFile) VALUES ('" + md5(lastcommitid) + "', '"+ files[i] +"')";
                 pool.query(sqlCommit);
-                var data = "INSERT INTO "+ [files[i]]+ "_"+ [name] +" (indice, files, newLinesAt, deletedLinesAt, newLines, message, commitID, name, arbol) VALUES ('"+indice+"','"+ files[i] +"','"+newLinesAt+"','"+deletedLinesAt+"','"+encoded+"','"+[message]+"','"+md5(lastcommitid)+"','"+[name]+"','"+JSON.stringify(freqTable)+"')";
+                var data = "INSERT INTO "+ [files[i]]+ "_"+ [name] +" (indice, files, newLinesAt, deletedLinesAt, newLines, message, commitID, name) VALUES ('"+indice+"','"+ files[i] +"','"+newLinesAt+"','"+deletedLinesAt+"','"+newLines+"','"+[message]+"','"+md5(lastcommitid)+"','"+[name]+"')";
                 pool.query(data); 
             
                 lastcommitid++;
@@ -152,7 +144,7 @@ router.post('/commit',  (req, res) => {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-router.get('/reset', (req, res) => {
+router.post('/reset', (req, res) => {
   const { repositorio } = req.body;
     const { file } = req.body;
      pool.query("SELECT newLinesAt, deletedLinesAt, newLines  FROM "+[file]+"_"+[repositorio]+' ORDER BY indice ASC' , (err, rows) => {
@@ -168,7 +160,7 @@ router.get('/reset', (req, res) => {
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-router.get('/sync', (req, res) => {
+router.post('/sync', (req, res) => {
   const { repositorio } = req.body;
   const { file } = req.body;
    pool.query("SELECT newLinesAt, deletedLinesAt, newLines  FROM "+[file]+"_"+[repositorio]+' ORDER BY indice ASC' , (err, rows) => {
@@ -183,7 +175,7 @@ router.get('/sync', (req, res) => {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-router.get('/status', (req, res) => {
+router.post('/status', (req, res) => {
   const {repositorio} = req.body;
   const {file} = req.body;
   if([file]==""){
@@ -212,12 +204,12 @@ router.get('/status', (req, res) => {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-router.get('/rollback',  (req, res) => {
+router.post('/rollback',  (req, res) => {
   const{name} = req.body;
   const{file} = req.body;
   const{commitID} = req.body; 
 
-  pool.query("SELECT newLinesAt, deletedLinesAt, newLines, arbol, commitID  FROM "+[file]+"_"+[name]+' ORDER BY indice ASC' , (err, rows) => {
+  pool.query("SELECT newLinesAt, deletedLinesAt, newLines, commitID  FROM "+[file]+"_"+[name]+' ORDER BY indice ASC' , (err, rows) => {
     if (!err) {  
       var dataCommit = [];
       var i = 0;
@@ -245,35 +237,22 @@ router.get('/rollback',  (req, res) => {
 function getFromHistory(commitHistory) {
   var finalText = [];
   for (i in commitHistory) {
-
       //Array con los indices de las nuevas lineas
-      var newLinesAt = commitHistory[i].newLinesAt.split(",");
+      var newLinesAt = commitHistory[i].newLinesAt;
       //Array con los indices de las lineas eliminadas
-      var deletedLinesAt = commitHistory[i].deletedLinesAt.split(",");
+      var deletedLinesAt = commitHistory[i].deletedLinesAt;
       //Array con las nuevas lineas
       var newlines = commitHistory[i].newLines;
-
-      var arbol = commitHistory[i].arbol;
-
-      if(newlines != ""){
-        newlines = Array.from(compressor.decode(arbol+"\n"+newlines));
-      }
-
-
 
 
       //Se agregan las nuevas lineas
       for (j in newlines) {
-        if(newLinesAt[0] != ""){
           finalText[newLinesAt[j]] = newlines[j];
-        }
       }
 
       //Se eliminan las lineas eliminadas
       for (j in deletedLinesAt) {
-        if(deletedLinesAt[0] != ""){
-          finalText.pop();
-        }
+          finalText.splice(deletedLinesAt[j], 1);
       }
 
   }

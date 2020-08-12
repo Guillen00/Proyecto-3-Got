@@ -4,6 +4,6 @@ module.exports = {
         user: 'root',
         password: 'fenelchat',
         database: 'GOT',
-        port:'8080'
+        port:'3306'
     }
 };
