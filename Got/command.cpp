@@ -126,37 +126,7 @@ void Command::commit(string mensaje){
     string texto1 ="";
     web::json::value json_v ;
     int x=0;
-    /*if( DIR* pDIR = opendir(rutadestino.c_str()) )
-    {
-      while(dirent* entry = readdir(pDIR))
-      {
-        std::string fileName = entry->d_name;
 
-        if( fileName != "." && fileName != ".." ){
-
-           if (lista_pendientes.front() == fileName){
-            char cadena[300];
-
-            ifstream fe(rutadestino+"/"+fileName);
-            while (!fe.eof()) {
-              fe >> cadena;
-              getline(fe,texto1);
-              //cout << cadena << endl;
-              //texto = texto +"/n"+ std::string(cadena);
-              texto = texto + "/n" +std::string(cadena)+ texto1;
-            }
-            fe.close();
-            lista_pendientes.pop_front();
-           }
-
-
-
-        }
-
-
-      }
-      closedir(pDIR);
-    }*/
 
     QJsonObject recordObject;
 

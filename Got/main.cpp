@@ -12,7 +12,10 @@
 
 using namespace std;
 
-
+/**
+* @brief Funcion main es la que inicia la aplicacion , es donde se guardaran todos los repositorios locales en la computadora , se deben ingresar comandos especificos los cuales se explican en la funcion got help
+* si este ingresa mal un codigo, el sistema se lo hara saber, y de estar de manera correcta el sistema hara la funcion respectiva al comando ingresado
+*/
 
 int main(int argc, char *argv[])
 {
