@@ -214,7 +214,7 @@ void Command::reset(string file){
     json_v["file"] = web::json::value::string(file.c_str());
 
     ofstream fs(rutadestino+file);
-    fs << POST("http://localhost:4000/links/rollback/",json_v) << endl;
+    fs << POST("http://localhost:4000/links/reset/",json_v) << endl;
     fs.close();
 }
 void Command::sync(string file){
