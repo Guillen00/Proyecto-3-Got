@@ -1,5 +1,10 @@
 const HuffmanTree = require('./huffman-tree');
 
+/**
+ * Calcula la cantidad de apareciones de un carater que el string
+ * @param string
+ * @returns {string|{}}
+ */
 function calculateFreqTable(string) {
   const table = {};
   if(string == ""){
@@ -11,6 +16,11 @@ function calculateFreqTable(string) {
   return table;
 }
 
+/**
+ * Aplica el algoritmo de huffman para codificar el string
+ * @param fileData
+ * @returns {string|{freqTable: (string|{}), encoded: *}}
+ */
 function encode(fileData) {
   if(fileData == ""){
     return  "";
@@ -24,7 +34,11 @@ function encode(fileData) {
   return { freqTable, encoded };
 }
 
-
+/**
+ * Aplica el algoritmo de hoffman para decodificar el string
+ * @param fileData
+ * @returns {*}
+ */
 function decode(fileData) {
   const [freqJsonStr, ...restOfFile] = fileData.split('\n');
   const encodedString = restOfFile.join('\n');
