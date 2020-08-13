@@ -6,6 +6,7 @@ const {database} = require('./keys');
 
 const pool = mysql.createPool(database);
 
+//Conexion con la base de datos
 pool.getConnection((err, connection) => {
     if(err) {
         if(err.code === 'PROTOCOL_CONNECTION_LOST'){

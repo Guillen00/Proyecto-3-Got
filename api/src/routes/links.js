@@ -7,28 +7,13 @@ let indice = 0;
 const pool = require('../database');
 
 
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
-router.get('/get', (req, res) => {
-    const { repositorio } = req.body;
-    const { file } = req.body;
-     pool.query("SELECT newLinesAt, deletedLinesAt, newLines  FROM "+[file]+"_"+[repositorio]+' ORDER BY indice ASC' , (err, rows) => {
-        if (!err) {
-          //res.json(rows);
-          console.log([file]);
-          console.log(rows);
-          var data = getFromHistory(rows);
-          res.send(data);
-
-        } else {
-          res.send("Error");
-        }
-    });
-});
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+/**Crea un repositorio en la base de datos
+ * Recibe y envia un json
+ * 
+ */
 router.post('/init', async (req, res) => {
     const {name} = req.body;
     var tablaRepositorio = "CREATE TABLE IF NOT EXISTS Repo_"+ [name] + "( lastcommit VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , nameFile VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , PRIMARY KEY (nameFile))";
@@ -37,7 +22,9 @@ router.post('/init', async (req, res) => {
 });
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+/**
+ * Almacena la informacion de los archivos en la base de datos
+ */
 router.post('/commit',  (req, res) => {
     const {name} = req.body;
     const {message} = req.body;
@@ -48,6 +35,7 @@ router.post('/commit',  (req, res) => {
     var commitServer;
 
 
+  //Obtiene el ultimo commit del servidor
       
       
     pool.query('SELECT * FROM Repo_' + [name],  (err, rows) => {
@@ -73,11 +61,14 @@ router.post('/commit',  (req, res) => {
             pool.query("TRUNCATE  Repo_"+[name]);
             for(var i=0; i<files.length;i++){
 
+              //Crea la tabla para el documento
+
               var sql = "CREATE TABLE IF NOT EXISTS "+ [files[i]]+ "_"+ [name] + "(indice VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL, files VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , newLinesAt VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , deletedLinesAt VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL, newLines VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL,message VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , commitID VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , name VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci NOT NULL , PRIMARY KEY (commitID))";
               pool.query(sql);
               
 
   
+              //Obtiene las diferencias de commits pasados
 
               pool.query("SELECT newLinesAt, deletedLinesAt, newLines, indice  FROM "+[files[i]]+"_"+[name]+' ORDER BY indice ASC' , (err,rows) => {
                 
@@ -93,7 +84,7 @@ router.post('/commit',  (req, res) => {
                 var deletedLinesAt = [];
                 var newLines = [];
                 var newStringArray = (fileContent[i]);
-                var oldStringArray = getFromHistory(rows);
+                var oldStringArray = getFromHistory(rows);  // Obtiene la diferencia de los textos
                 var h;
     
                 for (h = 0; h < oldStringArray.length; h++) {
@@ -114,10 +105,12 @@ router.post('/commit',  (req, res) => {
                 }
                 
     
-    
+
+                //Almacena el ultimo commit en el repositorio
     
                 var sqlCommit = "INSERT INTO Repo_" + [name] + "(lastcommit, nameFile) VALUES ('" + md5(lastcommitid) + "', '"+ files[i] +"')";
                 pool.query(sqlCommit);
+                //Inserta los datos en la tabla del documento
                 var data = "INSERT INTO "+ [files[i]]+ "_"+ [name] +" (indice, files, newLinesAt, deletedLinesAt, newLines, message, commitID, name) VALUES ('"+indice+"','"+ files[i] +"','"+newLinesAt+"','"+deletedLinesAt+"','"+newLines+"','"+[message]+"','"+md5(lastcommitid)+"','"+[name]+"')";
                 pool.query(data); 
             
@@ -144,6 +137,9 @@ router.post('/commit',  (req, res) => {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+/**
+ * Obtiene los ultimos cambios de un archivo de la base de datos
+ */
 router.post('/reset', (req, res) => {
   const { repositorio } = req.body;
     const { file } = req.body;
@@ -160,6 +156,9 @@ router.post('/reset', (req, res) => {
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+/**
+ * Obtiene los ultimos cambios de un documento
+ */
 router.post('/sync', (req, res) => {
   const { repositorio } = req.body;
   const { file } = req.body;
@@ -175,6 +174,9 @@ router.post('/sync', (req, res) => {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+/**
+ * Obtiene el historial de cambios de un documento
+ */
 router.post('/status', (req, res) => {
   const {repositorio} = req.body;
   const {file} = req.body;
@@ -203,7 +205,9 @@ router.post('/status', (req, res) => {
 })
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+/**
+ * Obtiene los cambios de un commit determinado
+ */
 router.post('/rollback',  (req, res) => {
   const{name} = req.body;
   const{file} = req.body;
@@ -234,6 +238,10 @@ router.post('/rollback',  (req, res) => {
 
 //Funcion para obtener el commit actual basado en el historial de commits
 //Se espera un array de json 
+/**
+ * 
+ * @param {*} commitHistory Array con json de los distintos diff
+ */
 function getFromHistory(commitHistory) {
   var finalText = [];
   for (i in commitHistory) {

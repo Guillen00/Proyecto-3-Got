@@ -1,3 +1,7 @@
+/**
+ * Datos para la conexion con la base de datos
+ */
+
 module.exports = {
     database:{
         host: 'localhost',
