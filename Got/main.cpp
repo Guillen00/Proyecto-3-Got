@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
                 command.init(correr[2]);
             }
             else if (correr[1]=="add") {
-                cout <<"si paso add"<<endl;
+
                 if (correr[2] == "-A"){
                     command.add(correr[3],1);
                 }
@@ -69,13 +69,13 @@ int main(int argc, char *argv[])
 
             }
             else if (correr[1]=="commit") {
-                int x=2;
+                int x=3;
                 string mensaje = "";
                 while(x < correr->length()+1){
                     mensaje= mensaje +" "+ correr[x];
                     x++;
                 }
-                command.commit(mensaje);
+                command.commit(correr[2],mensaje);
             }
             else if (correr[1]=="status") {
                 command.status(correr[2]);

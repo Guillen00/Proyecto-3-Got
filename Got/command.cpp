@@ -11,8 +11,6 @@
 #include <cpprest/http_client.h>
 #include <cpprest/streams.h>
 #include <jsoncpp/json/json.h>
-//#include <cpprest/http_compression.h>
-//#include <curl/curl.h>
 #include <QNetworkAccessManager>
 #include <QUrl>
 #include <QNetworkRequest>
@@ -120,7 +118,7 @@ void Command::add(string name, int selector){
 }
 
 
-void Command::commit(string mensaje){
+void Command::commit(string commit,string mensaje){
 
     string texto = "";
     string texto1 ="";
@@ -159,8 +157,8 @@ void Command::commit(string mensaje){
         lista_pendientes.pop_front();
         x++;
     }
-    recordObject.insert("repoName", QJsonValue::fromVariant(normbreRepositorioActual.c_str()));
-    recordObject.insert("mensaje", QJsonValue::fromVariant(mensaje.c_str()));
+    recordObject.insert("name", QJsonValue::fromVariant(normbreRepositorioActual.c_str()));
+    recordObject.insert("message", QJsonValue::fromVariant(mensaje.c_str()));
     recordObject.insert("files", FileNameArray);
     recordObject.insert("fileContent", FileDataArray);
 
@@ -173,9 +171,9 @@ void Command::commit(string mensaje){
     //qDebug() << recordsArray ;
 
 
-    json_v["repoName"] = web::json::value::string(normbreRepositorioActual.c_str());
-    json_v["mensaje"] = web::json::value::string(mensaje.c_str());
-
+    json_v["name"] = web::json::value::string(normbreRepositorioActual.c_str());
+    json_v["message"] = web::json::value::string(mensaje.c_str());
+    json_v["commitID"] = web::json::value::string(commit.c_str());
 
     cout<< json_v<<endl;
     POST("http://localhost:4000/links/commit/",json_v);
@@ -184,17 +182,11 @@ void Command::commit(string mensaje){
 void Command::status (string file){
 
 
-    QJsonObject recordObject;
-    recordObject.insert("repoName", QJsonValue::fromVariant(normbreRepositorioActual.c_str()));
-    recordObject.insert("file", QJsonValue::fromVariant(file.c_str()));
-
-    QJsonArray recordsArray;
-    recordsArray.push_front(recordObject);
-    qDebug() << recordsArray ;
-
     web::json::value json_v ;
-    json_v["repoName"] = web::json::value::string(normbreRepositorioActual.c_str());
+    json_v["repositorio"] = web::json::value::string(normbreRepositorioActual.c_str());
     json_v["file"] = web::json::value::string(file.c_str());
+
+   cout<< json_v<<endl;
     POST("http://localhost:4000/links/status/",json_v);
 
 }
@@ -202,7 +194,7 @@ void Command::rollback (string file,string commit){
 
 
     web::json::value json_v ;
-    json_v["repoName"] = web::json::value::string(normbreRepositorioActual.c_str());
+    json_v["name"] = web::json::value::string(normbreRepositorioActual.c_str());
     json_v["file"] = web::json::value::string(file.c_str());
     json_v["commitID"] = web::json::value::string(commit.c_str());
 
@@ -216,17 +208,9 @@ void Command::rollback (string file,string commit){
 
 void Command::reset(string file){
 
-    QJsonObject recordObject;
-    recordObject.insert("repoName", QJsonValue::fromVariant(normbreRepositorioActual.c_str()));
-    recordObject.insert("file", QJsonValue::fromVariant(file.c_str()));
-    recordObject.insert("commitID", QJsonValue::fromVariant(file.c_str()));
-    QJsonArray recordsArray;
-    recordsArray.push_front(recordObject);
-    qDebug() << recordsArray ;
-
 
     web::json::value json_v ;
-    json_v["repoName"] = web::json::value::string(normbreRepositorioActual.c_str());
+    json_v["repositorio"] = web::json::value::string(normbreRepositorioActual.c_str());
     json_v["file"] = web::json::value::string(file.c_str());
 
     ofstream fs(rutadestino+file);
@@ -237,9 +221,8 @@ void Command::sync(string file){
 
 
     web::json::value json_v ;
-    json_v["repoName"] = web::json::value::string(normbreRepositorioActual.c_str());
+    json_v["repositorio"] = web::json::value::string(normbreRepositorioActual.c_str());
     json_v["file"] = web::json::value::string(file.c_str());
-    json_v["commitID"] = web::json::value::string(file.c_str());
     string newdata;
     newdata = POST("http://localhost:4000/links/sync/",json_v);
     string olddata = "";
@@ -325,10 +308,4 @@ string Command::POST(string direccion, web::json::value json1){
 
 }
 
-Json::Value toJson(string message){ Json::Value val;
-    Json::Reader reader;
-    bool b = reader.parse(message, val);
-    if (!b)
-        cout << "Error: " << reader.getFormattedErrorMessages();
-    return val;
-}
+

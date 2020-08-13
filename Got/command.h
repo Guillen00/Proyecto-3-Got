@@ -70,7 +70,7 @@ public:
     * @brief Funcion commit lee la lista de pendientes y los sube al repositorio en la base de datos
     * @author Leonardo
     */
-    void commit(string mensaje);
+    void commit(string commit, string mensaje);
     /**
     * @brief Funcion status muestra es estado del archivo en la base de datos
     * @author Leonardo
